@@ -34,7 +34,7 @@
     #newsletter-arena { grid-column: 1 / -1; padding: 10px 12px 12px; border: 1px solid #475569; border-radius: 12px; background: #172033; }
     #newsletter-arena legend { padding: 0 8px; }
     #newsletter-options { display: flex; align-items: flex-start; gap: 10px; min-height: 76px; padding: 8px 2px; overflow: hidden; }
-    .choice { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 2px solid #475569; border-radius: 10px; background: #263449; cursor: pointer; white-space: nowrap; }
+    .choice { display: inline-flex; align-items: center; align-self: start; justify-self: start; gap: 8px; padding: 9px 12px; border: 2px solid #475569; border-radius: 10px; background: #263449; cursor: pointer; white-space: nowrap; }
     .choice input { width: 20px; height: 20px; margin: 0; accent-color: #22c55e; }
     .yes-choice { border-color: #22c55e; }
     .no-choice { border-color: #fb7185; background: #4c1d2c; }
@@ -90,6 +90,11 @@
           <div class="two">
             <label class="control"><span>Base container</span><select id="base-container"><option value="#newsletter-options">Flex row</option><option value="#newsletter-arena">Fieldset</option><option value="#signup-form">Form</option></select></label>
             <label class="control"><span>Expand levels</span><select id="expand"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+          </div>
+
+          <div class="two">
+            <label class="control"><span>Layout behavior</span><select id="layout-mode"><option value="float">Float and avoid</option><option value="reflow">Join and reflow</option></select></label>
+            <label class="control"><span>Reflow into</span><select id="reflow-container"><option value="#signup-form .form-grid">Form grid</option><option value="#signup-form">Form</option><option value="#newsletter-options">Choice row</option></select></label>
           </div>
 
           <label class="control"><span>Duration: <output id="duration-value" class="value">360</output>ms</span><input id="duration" type="range" min="0" max="1000" step="20" value="360"></label>
@@ -191,6 +196,8 @@
         padding: numeric("padding"),
         minimumTravel: numeric("travel"),
         collisionPadding: numeric("collision-padding"),
+        layoutMode: byId("layout-mode").value,
+        reflowContainer: byId("reflow-container").value,
         preserveLayout: byId("preserve").checked,
         avoidCollisions: byId("collisions").checked,
         respectReducedMotion: byId("reduced-motion").checked,
@@ -215,6 +222,8 @@
         `  padding: ${settings.padding},`,
         `  minimumTravel: ${settings.minimumTravel},`,
         `  collisionPadding: ${settings.collisionPadding},`,
+        `  layoutMode: ${JSON.stringify(settings.layoutMode)},`,
+        `  reflowContainer: ${JSON.stringify(settings.reflowContainer)},`,
         `  preserveLayout: ${settings.preserveLayout},`,
         `  avoidCollisions: ${settings.avoidCollisions},`,
         `  respectReducedMotion: ${settings.respectReducedMotion},`,

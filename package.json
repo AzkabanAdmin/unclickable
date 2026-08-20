@@ -1,6 +1,6 @@
 {
   "name": "unclickable",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "A dependency-free JavaScript prank that makes any HTML element dodge, teleport, vanish, fade, or redirect clicks.",
   "type": "module",
   "exports": "./unclickable.js",

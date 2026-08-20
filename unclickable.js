@@ -50,6 +50,8 @@ export class Unclickable {
       collisionPadding: 8,
       obstacles: null,
       expandContainer: 0,
+      layoutMode: "float",
+      reflowContainer: null,
       preserveLayout: true,
       respectReducedMotion: true,
       redirectTarget: null,
@@ -77,6 +79,8 @@ export class Unclickable {
     this.lastPointer = null;
     this.lastRandomMode = null;
     this.placeholder = null;
+    this.originMarker = document.createComment("unclickable-origin");
+    this.element.before(this.originMarker);
     this.frame = 0;
     this.animationResolve = null;
     this.runId = 0;
@@ -90,6 +94,7 @@ export class Unclickable {
       ariaDisabled: element.getAttribute("aria-disabled"),
       tabIndex: element.getAttribute("tabindex"),
       pointerEvents: element.style.pointerEvents,
+      transform: element.style.transform,
       descendantTabIndexes: [...element.querySelectorAll(FOCUSABLE_SELECTOR)]
         .map((child) => ({ child, value: child.getAttribute("tabindex") })),
       ancestorOverflows: [],
@@ -128,13 +133,17 @@ export class Unclickable {
       const visibility = actions.includes("fade")
         ? "fade"
         : actions.includes("vanish") ? "vanish" : null;
-      const target = movement
+      const usesReflow = movement && this.options.layoutMode === "reflow";
+      const target = movement && !usesReflow
         ? this.#findPosition({ requireClearPath: movement === "dodge" })
         : null;
 
       if (visibility) await this.#hide(visibility, currentRun);
-      if (movement === "teleport") this.#setPosition(target, this.options.axis);
-      if (movement === "dodge") await this.#animatePosition(target, currentRun);
+      if (usesReflow) await this.#reflow(movement, currentRun);
+      else {
+        if (movement === "teleport") this.#setPosition(target, this.options.axis);
+        if (movement === "dodge") await this.#animatePosition(target, currentRun);
+      }
       if (visibility) {
         await this.#waitUntilPointerLeaves(currentRun);
         await this.#show(visibility, currentRun);
@@ -155,6 +164,10 @@ export class Unclickable {
     this.#cancelAnimation();
     this.abortController.abort();
     this.placeholder?.remove();
+    if (this.originMarker.parentNode) {
+      this.originMarker.parentNode.insertBefore(this.element, this.originMarker.nextSibling);
+      this.originMarker.remove();
+    }
 
     if (this.original.elementStyle === null) this.element.removeAttribute("style");
     else this.element.setAttribute("style", this.original.elementStyle);
@@ -181,6 +194,9 @@ export class Unclickable {
     }
     if (!["both", "x", "y"].includes(this.options.axis)) {
       throw new RangeError('axis must be "both", "x", or "y".');
+    }
+    if (!["float", "reflow"].includes(this.options.layoutMode)) {
+      throw new RangeError('layoutMode must be "float" or "reflow".');
     }
   }
 
@@ -236,6 +252,10 @@ export class Unclickable {
 
   #activate() {
     if (this.activated) return;
+    if (this.options.layoutMode === "reflow") {
+      this.activated = true;
+      return;
+    }
     const elementRect = this.element.getBoundingClientRect();
     const origin = this.#containerOrigin();
     this.position = {
@@ -297,7 +317,7 @@ export class Unclickable {
       event.stopImmediatePropagation();
     }, { capture: true, signal });
 
-    this.container.addEventListener("pointermove", (event) => {
+    window.addEventListener("pointermove", (event) => {
       this.lastPointer = { x: event.clientX, y: event.clientY };
       if (this.busy || this.options.trigger === "press") return;
       const rect = this.element.getBoundingClientRect();
@@ -308,12 +328,8 @@ export class Unclickable {
       if (distance <= this.options.dangerRadius) this.evade(event, "approach");
     }, { passive: true, signal });
 
-    window.addEventListener("pointermove", (event) => {
-      this.lastPointer = { x: event.clientX, y: event.clientY };
-    }, { passive: true, signal });
-
     window.addEventListener("resize", () => {
-      if (!this.activated) return;
+      if (!this.activated || this.options.layoutMode === "reflow") return;
       this.#setPosition(this.position);
     }, { signal });
   }
@@ -484,6 +500,57 @@ export class Unclickable {
       }, this.options.axis);
       return progress >= 1 || !this.#isCurrent(runId);
     });
+  }
+
+  async #reflow(movement, runId) {
+    const destination = this.#resolveReflowContainer();
+    const startRect = this.element.getBoundingClientRect();
+
+    if (!this.placeholder && this.options.preserveLayout && this.originMarker.parentNode) {
+      this.#createPlaceholder(startRect);
+    }
+
+    const siblings = [...destination.children].filter((child) =>
+      child !== this.element &&
+      child !== this.placeholder &&
+      !child.contains(this.element) &&
+      !child.hasAttribute("data-unclickable-placeholder")
+    );
+    const slots = [...siblings, null];
+    let reference = slots[Math.floor(Math.random() * slots.length)];
+    if (siblings.length > 1 && reference === this.element.nextElementSibling) {
+      reference = slots[(slots.indexOf(reference) + 1) % slots.length];
+    }
+    destination.insertBefore(this.element, reference);
+
+    if (movement !== "dodge" || this.#duration() === 0) return;
+    const endRect = this.element.getBoundingClientRect();
+    const deltaX = startRect.left - endRect.left;
+    const deltaY = startRect.top - endRect.top;
+    const duration = this.#duration();
+    const startedAt = performance.now();
+    this.element.style.willChange = "transform, opacity";
+
+    await this.#animate((now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - progress, 4);
+      this.element.style.transform = `translate3d(${deltaX * (1 - eased)}px, ${deltaY * (1 - eased)}px, 0)`;
+      return progress >= 1 || !this.#isCurrent(runId);
+    });
+    if (this.#isCurrent(runId)) this.element.style.transform = this.original.transform;
+  }
+
+  #resolveReflowContainer() {
+    let destination = this.options.reflowContainer ?? this.container;
+    if (typeof destination === "string") destination = document.querySelector(destination);
+    if (typeof destination === "function") destination = destination(this);
+    if (!(destination instanceof HTMLElement)) {
+      throw new TypeError("reflowContainer must resolve to an HTMLElement.");
+    }
+    if (this.element.contains(destination)) {
+      throw new RangeError("reflowContainer cannot be inside the unclickable element.");
+    }
+    return destination;
   }
 
   async #hide(type, runId) {

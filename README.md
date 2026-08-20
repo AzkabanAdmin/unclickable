@@ -20,7 +20,7 @@ npx serve .
 
 Then open the local URL printed in your terminal.
 
-The playground lets you test every action and combination, axis and trigger constraints, container expansion, layout preservation, collision settings, timing, distances, redirect targets, reduced-motion behavior, callbacks, and the random-action pool against a working form. A live code panel turns the selected settings into a ready-to-copy example.
+The playground lets you test every action and combination, floating or reflow movement, axis and trigger constraints, container expansion, layout preservation, collision settings, timing, distances, redirect targets, reduced-motion behavior, callbacks, and the random-action pool against a working form. A live code panel turns the selected settings into a ready-to-copy example.
 
 ## Add it to a project
 
@@ -44,7 +44,7 @@ Use a module script in plain HTML:
 After a tagged release, it can also be imported through jsDelivr:
 
 ```js
-import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.3.0/unclickable.js";
+import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.4.0/unclickable.js";
 ```
 
 Pin a release version in production instead of using the latest branch.
@@ -134,6 +134,8 @@ const controller = makeUnclickable("#no-option", {
   collisionPadding: 8,
   obstacles: null,
   expandContainer: 0,
+  layoutMode: "float",
+  reflowContainer: null,
   preserveLayout: true,
   respectReducedMotion: true,
   redirectTarget: "#yes-button",
@@ -158,6 +160,8 @@ const controller = makeUnclickable("#no-option", {
 | `collisionPadding` | `8` | Extra clearance around the escaping element. |
 | `obstacles` | Automatic | Selector, iterable, or callback. By default, sibling layout branches between the target and container are obstacles. |
 | `expandContainer` | `0` | Climb this many ancestors above the chosen/default container. `true` means one level. |
+| `layoutMode` | `"float"` | `"float"` uses free positioning; `"reflow"` joins another flex/grid layout and moves its neighbors naturally. |
+| `reflowContainer` | Movement container | Element, document selector, or callback resolving to the flex/grid container used by reflow mode. |
 | `preserveLayout` | `true` | Leave an invisible placeholder in the original flex/grid/layout slot. |
 | `respectReducedMotion` | `true` | Make animations instant when reduced motion is requested. |
 | `redirectTarget` | Automatic | Element, document selector, or `(instance) => element` for redirect. |
@@ -183,6 +187,23 @@ The target remains a normal flex/grid item when the page first loads. Unclickabl
 - Unclickable does not change the container's `display`, grid tracks, flex direction, or gap.
 
 The container becomes a positioning context (`position: relative`) only when it was previously `static`. Its original inline position is restored by `destroy()`.
+
+### Reflow instead of getting trapped
+
+Dense forms may have no collision-free pixel space. Reflow mode moves the target into a real flex/grid slot instead of floating it over other fields:
+
+```js
+makeUnclickable("#no-option", {
+  mode: "teleport",
+  layoutMode: "reflow",
+  reflowContainer: ".form-grid",
+  preserveLayout: false,
+});
+```
+
+`teleport` changes slots instantly. `dodge` animates between slots while the browser reflows neighboring elements and grows the destination container normally. Collision avoidance is inherent because the target remains a normal layout item. Axis constraints apply to floating movement and are ignored by reflow mode.
+
+With `preserveLayout: true`, an invisible placeholder reserves the target's first slot. With `false`, the original row closes as soon as the target joins the destination layout. Calling `destroy()` returns the target to its exact original DOM location and restores its styles.
 
 ### Expand into a larger parent
 
