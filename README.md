@@ -44,10 +44,22 @@ Use a module script in plain HTML:
 After a tagged release, it can also be imported through jsDelivr:
 
 ```js
-import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.5.0/unclickable.js";
+import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.5.1/unclickable.js";
 ```
 
 Pin a release version in production instead of using the latest branch.
+
+## Development and testing
+
+Install the development dependencies, then run the Chromium behavior suite:
+
+```sh
+npm install
+npx playwright install chromium
+npm test
+```
+
+The tests cover initialization, click blocking and redirection, cleanup and DOM restoration, reduced-motion behavior, callback failures, option validation, and repeated initialization. GitHub Actions runs the same suite for every push and pull request.
 
 ## Basic Yes/No example
 

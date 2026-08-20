@@ -72,6 +72,9 @@ export class Unclickable {
     };
 
     this.options.mode = this.#normalizeMode(this.options.mode);
+    if (!Array.isArray(this.options.randomModes)) {
+      throw new TypeError("randomModes must be an array.");
+    }
     this.options.randomModes = this.options.randomModes.map((action) => this.#normalizeAction(action));
     this.#validateOptions();
     if (Array.isArray(this.options.mode)) this.options.mode = [...new Set(this.options.mode)];
@@ -131,9 +134,9 @@ export class Unclickable {
     this.busy = true;
     const currentRun = ++this.runId;
     const modeLabel = actions.length === 1 ? actions[0] : [...actions];
-    this.options.onMode?.(modeLabel, this);
 
     try {
+      this.options.onMode?.(modeLabel, this);
       if (actions.includes("redirect")) this.#redirect();
 
       const movement = actions.includes("teleport")
@@ -206,6 +209,20 @@ export class Unclickable {
     }
     if (!["float", "reflow"].includes(this.options.layoutMode)) {
       throw new RangeError('layoutMode must be "float" or "reflow".');
+    }
+    for (const name of ["padding", "duration", "dangerRadius", "minimumTravel", "collisionPadding"]) {
+      const value = Number(this.options[name]);
+      if (!Number.isFinite(value) || value < 0) {
+        throw new RangeError(`${name} must be a finite, non-negative number.`);
+      }
+    }
+    for (const name of ["onAttempt", "onMode", "onEscape"]) {
+      if (this.options[name] !== null && typeof this.options[name] !== "function") {
+        throw new TypeError(`${name} must be a function or null.`);
+      }
+    }
+    if (typeof this.options.redirectSelector !== "string") {
+      throw new TypeError("redirectSelector must be a string.");
     }
   }
 

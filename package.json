@@ -1,11 +1,33 @@
 {
   "name": "unclickable",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A dependency-free JavaScript prank that makes any HTML element dodge, teleport, vanish, fade, or redirect clicks.",
   "type": "module",
   "exports": "./unclickable.js",
-  "files": ["unclickable.js", "README.md", "LICENSE"],
-  "scripts": { "check": "node --check unclickable.js" },
-  "keywords": ["button", "prank", "easter-egg", "vanilla-javascript", "no-dependencies"],
-  "license": "MIT"
+  "files": [
+    "unclickable.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check unclickable.js && npx playwright test --list",
+    "test": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AzkabanAdmin/unclickable.git"
+  },
+  "homepage": "https://github.com/AzkabanAdmin/unclickable#readme",
+  "bugs": "https://github.com/AzkabanAdmin/unclickable/issues",
+  "keywords": [
+    "button",
+    "prank",
+    "easter-egg",
+    "vanilla-javascript",
+    "no-dependencies"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
 }
