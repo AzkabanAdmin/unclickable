@@ -20,7 +20,7 @@ npx serve .
 
 Then open the local URL printed in your terminal.
 
-The playground lets you test every action and combination, axis and trigger constraints, container expansion, layout preservation, collision settings, timing, distances, redirect targets, reduced-motion behavior, callbacks, and the random-action pool against a working form.
+The playground lets you test every action and combination, axis and trigger constraints, container expansion, layout preservation, collision settings, timing, distances, redirect targets, reduced-motion behavior, callbacks, and the random-action pool against a working form. A live code panel turns the selected settings into a ready-to-copy example.
 
 ## Add it to a project
 
