@@ -44,7 +44,7 @@ Use a module script in plain HTML:
 After a tagged release, it can also be imported through jsDelivr:
 
 ```js
-import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.4.0/unclickable.js";
+import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.5.0/unclickable.js";
 ```
 
 Pin a release version in production instead of using the latest branch.
@@ -147,11 +147,11 @@ const controller = makeUnclickable("#no-option", {
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `container` | Parent element | Movement boundary. It must contain the target. |
+| `container` | Parent element | Floating movement boundary. It must contain the target. Ignored by reflow placement. |
 | `mode` | `"random"` | One action, `"random"`, or a compatible action array. |
 | `randomModes` | All actions | Pool used by random mode. |
 | `trigger` | `"both"` | React on `"approach"`, `"press"`, or `"both"`. |
-| `axis` | `"both"` | Allow movement on `"both"` axes, only `"x"`, or only `"y"`. Applies to `teleport` and `dodge`. |
+| `axis` | `"both"` | Floating movement on `"both"` axes, only `"x"`, or only `"y"`. |
 | `padding` | `10` | Minimum distance in pixels from the container edge. |
 | `duration` | `360` | Dodge/fade duration in milliseconds. |
 | `dangerRadius` | `90` | Pointer proximity that triggers an approach escape. |
@@ -159,11 +159,11 @@ const controller = makeUnclickable("#no-option", {
 | `avoidCollisions` | `true` | Avoid visible obstacles and collision paths. |
 | `collisionPadding` | `8` | Extra clearance around the escaping element. |
 | `obstacles` | Automatic | Selector, iterable, or callback. By default, sibling layout branches between the target and container are obstacles. |
-| `expandContainer` | `0` | Climb this many ancestors above the chosen/default container. `true` means one level. |
+| `expandContainer` | `0` | In float mode, climb this many ancestors above the chosen/default container. `true` means one level. |
 | `layoutMode` | `"float"` | `"float"` uses free positioning; `"reflow"` joins another flex/grid layout and moves its neighbors naturally. |
 | `reflowContainer` | Movement container | Element, document selector, or callback resolving to the flex/grid container used by reflow mode. |
 | `preserveLayout` | `true` | Leave an invisible placeholder in the original flex/grid/layout slot. |
-| `respectReducedMotion` | `true` | Make animations instant when reduced motion is requested. |
+| `respectReducedMotion` | `true` | Disable all prank behavior when reduced motion is requested, leaving the target normally usable. |
 | `redirectTarget` | Automatic | Element, document selector, or `(instance) => element` for redirect. |
 
 Constrain any movement action to one axis:
@@ -178,7 +178,17 @@ mode: ["fade", "teleport"],
 axis: "y" // fade, jump vertically, fade back in
 ```
 
-## Flex and grid layouts
+## Float and reflow layouts
+
+The layout modes intentionally use separate controls:
+
+- `float` uses `container`, `expandContainer`, `axis`, `padding`, `minimumTravel`, and collision options.
+- `reflow` uses `reflowContainer`; the browser's flex/grid algorithm prevents overlap and positions neighboring items.
+- `mode`, `trigger`, visibility actions, timing, callbacks, redirect, and `preserveLayout` apply to both.
+
+This separation prevents container expansion and collision settings from appearing to control reflow when they do not.
+
+### Float inside flex and grid
 
 The target remains a normal flex/grid item when the page first loads. Unclickable switches it to absolute positioning only on its first escape.
 
@@ -205,7 +215,7 @@ makeUnclickable("#no-option", {
 
 With `preserveLayout: true`, an invisible placeholder reserves the target's first slot. With `false`, the original row closes as soon as the target joins the destination layout. Calling `destroy()` returns the target to its exact original DOM location and restores its styles.
 
-### Expand into a larger parent
+### Expand floating movement into a larger parent
 
 Keep the target in its normal compact flex row while allowing it to escape into a larger form:
 
@@ -218,6 +228,10 @@ makeUnclickable("#no-option", {
 ```
 
 The movement boundary becomes the ancestor two levels above `#answer-row`. The smaller row is not stretched or removed. Intermediate ancestors temporarily allow visible overflow so they do not clip the escape; `destroy()` restores their inline overflow values. Nested sibling sections inside the expanded boundary are automatically treated as obstacles, so the target uses open space instead of covering form fields.
+
+## Reduced motion
+
+When `respectReducedMotion` is `true` and the visitor has requested reduced motion, Unclickable does not attach its blocking interaction behavior. The element stays in its original layout and remains normally clickable, focusable, and usable. Set the option to `false` only when movement is still appropriate for that experience.
 
 ## Runtime controls
 

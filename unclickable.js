@@ -24,7 +24,9 @@ export class Unclickable {
     if (!(this.container instanceof HTMLElement)) {
       throw new TypeError("Unclickable needs an HTMLElement container.");
     }
-    const expansion = options.expandContainer === true ? 1 : Number(options.expandContainer ?? 0);
+    const requestedLayoutMode = options.layoutMode ?? "float";
+    const requestedExpansion = options.expandContainer === true ? 1 : Number(options.expandContainer ?? 0);
+    const expansion = requestedLayoutMode === "reflow" ? 0 : requestedExpansion;
     if (!Number.isInteger(expansion) || expansion < 0) {
       throw new RangeError("expandContainer must be true or a non-negative integer.");
     }
@@ -79,8 +81,7 @@ export class Unclickable {
     this.lastPointer = null;
     this.lastRandomMode = null;
     this.placeholder = null;
-    this.originMarker = document.createComment("unclickable-origin");
-    this.element.before(this.originMarker);
+    this.originMarker = null;
     this.frame = 0;
     this.animationResolve = null;
     this.runId = 0;
@@ -100,8 +101,16 @@ export class Unclickable {
       ancestorOverflows: [],
     };
 
-    this.#prepare();
-    this.#bind();
+    this.motionDisabled = Boolean(
+      this.options.respectReducedMotion &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    );
+    if (!this.motionDisabled) {
+      this.originMarker = document.createComment("unclickable-origin");
+      this.element.before(this.originMarker);
+      this.#prepare();
+      this.#bind();
+    }
     Unclickable.#instances.set(element, this);
   }
 
@@ -113,7 +122,7 @@ export class Unclickable {
   }
 
   async evade(event, trigger = "press") {
-    if (this.destroyed || this.busy) return false;
+    if (this.destroyed || this.busy || this.motionDisabled) return false;
 
     const actions = this.#resolveActions(trigger);
     if (!actions.length) return false;
@@ -162,9 +171,9 @@ export class Unclickable {
     this.destroyed = true;
     this.runId += 1;
     this.#cancelAnimation();
-    this.abortController.abort();
+    this.abortController?.abort();
     this.placeholder?.remove();
-    if (this.originMarker.parentNode) {
+    if (this.originMarker?.parentNode) {
       this.originMarker.parentNode.insertBefore(this.element, this.originMarker.nextSibling);
       this.originMarker.remove();
     }
@@ -230,7 +239,7 @@ export class Unclickable {
   }
 
   #prepare() {
-    if (getComputedStyle(this.container).position === "static") {
+    if (this.options.layoutMode === "float" && getComputedStyle(this.container).position === "static") {
       this.container.style.position = "relative";
     }
     Object.assign(this.element.style, { touchAction: "none", userSelect: "none" });
@@ -626,8 +635,6 @@ export class Unclickable {
   }
 
   #duration() {
-    if (this.options.respectReducedMotion &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return 0;
     return Math.max(0, Number(this.options.duration) || 0);
   }
 

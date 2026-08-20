@@ -15,6 +15,8 @@
     .controls { display: grid; gap: 14px; }
     .control { display: grid; gap: 6px; }
     .control > span, .control > label { font-weight: 700; }
+    .control-note { margin: -5px 0 0; color: #94a3b8; font-size: 0.86rem; }
+    select:disabled, input:disabled { opacity: 0.42; cursor: not-allowed; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     select, input[type="text"], input[type="email"] { width: 100%; padding: 10px 11px; border: 1px solid #475569; border-radius: 9px; color: #f8fafc; background: #0f172a; font: inherit; }
     input[type="range"] { width: 100%; accent-color: #38bdf8; }
@@ -96,6 +98,7 @@
             <label class="control"><span>Layout behavior</span><select id="layout-mode"><option value="float">Float and avoid</option><option value="reflow">Join and reflow</option></select></label>
             <label class="control"><span>Reflow into</span><select id="reflow-container"><option value="#signup-form .form-grid">Form grid</option><option value="#signup-form">Form</option><option value="#newsletter-options">Choice row</option></select></label>
           </div>
+          <p id="layout-note" class="control-note"></p>
 
           <label class="control"><span>Duration: <output id="duration-value" class="value">360</output>ms</span><input id="duration" type="range" min="0" max="1000" step="20" value="360"></label>
           <label class="control"><span>Danger radius: <output id="danger-value" class="value">90</output>px</span><input id="danger" type="range" min="0" max="180" value="90"></label>
@@ -211,29 +214,47 @@
         'import { makeUnclickable } from "./unclickable.js";',
         "",
         'const controller = makeUnclickable("#newsletter-no-option", {',
-        `  container: document.querySelector(${JSON.stringify(settings.container)}),`,
-        `  expandContainer: ${settings.expandContainer},`,
         `  mode: ${JSON.stringify(settings.mode)},`,
         `  randomModes: ${JSON.stringify(settings.randomModes)},`,
-        `  axis: ${JSON.stringify(settings.axis)},`,
         `  trigger: ${JSON.stringify(settings.trigger)},`,
         `  duration: ${settings.duration},`,
         `  dangerRadius: ${settings.dangerRadius},`,
-        `  padding: ${settings.padding},`,
-        `  minimumTravel: ${settings.minimumTravel},`,
-        `  collisionPadding: ${settings.collisionPadding},`,
         `  layoutMode: ${JSON.stringify(settings.layoutMode)},`,
-        `  reflowContainer: ${JSON.stringify(settings.reflowContainer)},`,
+      ];
+      if (settings.layoutMode === "reflow") {
+        lines.push(`  reflowContainer: ${JSON.stringify(settings.reflowContainer)},`);
+      } else {
+        lines.push(
+          `  container: document.querySelector(${JSON.stringify(settings.container)}),`,
+          `  expandContainer: ${settings.expandContainer},`,
+          `  axis: ${JSON.stringify(settings.axis)},`,
+          `  padding: ${settings.padding},`,
+          `  minimumTravel: ${settings.minimumTravel},`,
+          `  collisionPadding: ${settings.collisionPadding},`,
+          `  avoidCollisions: ${settings.avoidCollisions},`,
+        );
+      }
+      lines.push(
         `  preserveLayout: ${settings.preserveLayout},`,
-        `  avoidCollisions: ${settings.avoidCollisions},`,
         `  respectReducedMotion: ${settings.respectReducedMotion},`,
         `  redirectTarget: ${JSON.stringify(settings.redirectTarget)},`,
         '  onAttempt: (event, instance) => console.log("Click attempt", event),',
         '  onMode: (mode, instance) => console.log("Running", mode),',
         '  onEscape: (mode, instance) => console.log("Escaped", mode),',
         "});",
-      ];
+      );
       byId("generated-code").textContent = lines.join("\n");
+    }
+
+    function updateLayoutControls() {
+      const reflow = byId("layout-mode").value === "reflow";
+      for (const id of ["axis", "base-container", "expand", "padding", "travel", "collision-padding", "collisions"]) {
+        byId(id).disabled = reflow;
+      }
+      byId("reflow-container").disabled = !reflow;
+      byId("layout-note").textContent = reflow
+        ? "Reflow uses real flex/grid slots. Floating boundary, axis, and collision-distance controls do not apply."
+        : "Float mode uses the selected boundary, expansion, axis, and collision settings.";
     }
 
     function updateRangeLabels() {
@@ -250,8 +271,31 @@
         return;
       }
 
+      const layoutSettings = settings.layoutMode === "reflow"
+        ? {
+            layoutMode: "reflow",
+            reflowContainer: settings.reflowContainer,
+          }
+        : {
+            layoutMode: "float",
+            container: settings.container,
+            expandContainer: settings.expandContainer,
+            axis: settings.axis,
+            padding: settings.padding,
+            minimumTravel: settings.minimumTravel,
+            collisionPadding: settings.collisionPadding,
+            avoidCollisions: settings.avoidCollisions,
+          };
       controller = makeUnclickable("#newsletter-no-option", {
-        ...settings,
+        mode: settings.mode,
+        randomModes: settings.randomModes,
+        trigger: settings.trigger,
+        duration: settings.duration,
+        dangerRadius: settings.dangerRadius,
+        preserveLayout: settings.preserveLayout,
+        respectReducedMotion: settings.respectReducedMotion,
+        redirectTarget: settings.redirectTarget,
+        ...layoutSettings,
         onAttempt: () => {
           attempts += 1;
           attemptCount.value = String(attempts);
@@ -265,12 +309,17 @@
       });
 
       const boundary = controller.container;
-      byId("boundary").textContent = `Movement boundary: ${boundary.id ? `#${boundary.id}` : boundary.tagName.toLowerCase()}`;
-      status.textContent = "Settings applied.";
+      byId("boundary").textContent = settings.layoutMode === "reflow"
+        ? `Reflow layout: ${settings.reflowContainer}`
+        : `Movement boundary: ${boundary.id ? `#${boundary.id}` : boundary.tagName.toLowerCase()}`;
+      status.textContent = controller.motionDisabled
+        ? "Reduced motion is enabled: No remains a normal usable option."
+        : "Settings applied.";
     }
 
     byId("demo-controls").addEventListener("input", () => {
       updateRangeLabels();
+      updateLayoutControls();
       updateCodePreview();
     });
     byId("apply").addEventListener("click", buildController);
@@ -295,6 +344,7 @@
     });
 
     updateRangeLabels();
+    updateLayoutControls();
     updateCodePreview();
     buildController();
   </script>
