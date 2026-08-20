@@ -329,11 +329,21 @@
       attemptCount.value = "0";
     });
     byId("copy-code").addEventListener("click", async () => {
+      const code = byId("generated-code").textContent;
       try {
-        await navigator.clipboard.writeText(byId("generated-code").textContent);
+        await navigator.clipboard.writeText(code);
         byId("copy-status").textContent = "Copied to clipboard.";
       } catch {
-        byId("copy-status").textContent = "Copy failed. Select the code and copy it manually.";
+        const helper = document.createElement("textarea");
+        helper.value = code;
+        Object.assign(helper.style, { position: "fixed", opacity: "0", pointerEvents: "none" });
+        document.body.append(helper);
+        helper.select();
+        const copied = document.execCommand("copy");
+        helper.remove();
+        byId("copy-status").textContent = copied
+          ? "Copied to clipboard."
+          : "Copy failed. Select the code and copy it manually.";
       }
     });
 
