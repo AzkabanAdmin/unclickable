@@ -1,0 +1,12 @@
+{
+  "name": "unclickable",
+  "version": "1.0.0",
+  "description": "A dependency-free JavaScript prank that makes any HTML element dodge, teleport, vanish, fade, or redirect clicks.",
+  "type": "module",
+  "exports": "./unclickable.js",
+  "files": ["unclickable.js", "README.md", "LICENSE"],
+  "scripts": { "check": "node --check unclickable.js" },
+  "keywords": ["button", "prank", "easter-egg", "vanilla-javascript", "no-dependencies"],
+  "license": "MIT"
+}
+
