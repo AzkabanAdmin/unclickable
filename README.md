@@ -6,13 +6,19 @@ Unclickable has no dependencies and injects no stylesheet. Your project owns the
 
 ## Demo
 
-Open `index.html` through a local web server:
+Open `index.html` through a local web server with either Python:
 
 ```sh
 python -m http.server 8765
 ```
 
-Then visit `http://localhost:8765`.
+Or Node.js:
+
+```sh
+npx serve .
+```
+
+Then open the local URL printed in your terminal.
 
 ## Add it to a project
 
