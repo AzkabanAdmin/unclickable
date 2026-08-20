@@ -17,9 +17,21 @@ export class Unclickable {
     Unclickable.#instances.get(element)?.destroy();
 
     this.element = element;
-    this.container = options.container ?? element.parentElement;
+    const requestedContainer = typeof options.container === "string"
+      ? document.querySelector(options.container)
+      : options.container;
+    this.container = requestedContainer ?? element.parentElement;
     if (!(this.container instanceof HTMLElement)) {
       throw new TypeError("Unclickable needs an HTMLElement container.");
+    }
+    const expansion = options.expandContainer === true ? 1 : Number(options.expandContainer ?? 0);
+    if (!Number.isInteger(expansion) || expansion < 0) {
+      throw new RangeError("expandContainer must be true or a non-negative integer.");
+    }
+    this.expansion = expansion;
+    for (let level = 0; level < expansion; level += 1) {
+      if (!this.container.parentElement) break;
+      this.container = this.container.parentElement;
     }
     if (!this.container.contains(element)) {
       throw new RangeError("The container must contain the unclickable element.");
@@ -37,6 +49,7 @@ export class Unclickable {
       avoidCollisions: true,
       collisionPadding: 8,
       obstacles: null,
+      expandContainer: 0,
       preserveLayout: true,
       respectReducedMotion: true,
       redirectTarget: null,
@@ -77,6 +90,7 @@ export class Unclickable {
       pointerEvents: element.style.pointerEvents,
       descendantTabIndexes: [...element.querySelectorAll(FOCUSABLE_SELECTOR)]
         .map((child) => ({ child, value: child.getAttribute("tabindex") })),
+      ancestorOverflows: [],
     };
 
     this.#prepare();
@@ -147,6 +161,9 @@ export class Unclickable {
     for (const { child, value } of this.original.descendantTabIndexes) {
       this.#restoreAttribute(child, "tabindex", value);
     }
+    for (const { ancestor, overflow } of this.original.ancestorOverflows) {
+      ancestor.style.overflow = overflow;
+    }
     Unclickable.#instances.delete(this.element);
   }
 
@@ -191,6 +208,17 @@ export class Unclickable {
     this.element.setAttribute("aria-disabled", "true");
     this.element.tabIndex = -1;
     for (const { child } of this.original.descendantTabIndexes) child.tabIndex = -1;
+
+    if (this.expansion > 0) {
+      for (
+        let ancestor = this.element.parentElement;
+        ancestor && ancestor !== this.container;
+        ancestor = ancestor.parentElement
+      ) {
+        this.original.ancestorOverflows.push({ ancestor, overflow: ancestor.style.overflow });
+        ancestor.style.overflow = "visible";
+      }
+    }
   }
 
   #activate() {
@@ -375,7 +403,7 @@ export class Unclickable {
     if (typeof configured === "function") candidates = configured(this);
     else if (typeof configured === "string") candidates = this.container.querySelectorAll(configured);
     else if (configured && Symbol.iterator in Object(configured)) candidates = configured;
-    else candidates = this.container.children;
+    else candidates = this.#defaultObstacles();
 
     return [...candidates].filter((item) =>
       item instanceof HTMLElement &&
@@ -387,6 +415,26 @@ export class Unclickable {
       getComputedStyle(item).display !== "none" &&
       getComputedStyle(item).visibility !== "hidden"
     );
+  }
+
+  #defaultObstacles() {
+    const obstacles = [];
+    const visit = (parent) => {
+      for (const child of parent.children) {
+        if (
+          child === this.element ||
+          child === this.placeholder ||
+          child.hasAttribute("data-unclickable-placeholder")
+        ) continue;
+
+        // Follow only the branch containing the target. Each sibling branch is
+        // represented by its outer box, avoiding duplicate nested collisions.
+        if (child.contains(this.element)) visit(child);
+        else obstacles.push(child);
+      }
+    };
+    visit(this.container);
+    return obstacles;
   }
 
   #containerOrigin() {

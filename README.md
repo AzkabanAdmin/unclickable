@@ -42,7 +42,7 @@ Use a module script in plain HTML:
 After a tagged release, it can also be imported through jsDelivr:
 
 ```js
-import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.1.0/unclickable.js";
+import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.2.0/unclickable.js";
 ```
 
 Pin a release version in production instead of using the latest branch.
@@ -131,6 +131,7 @@ const controller = makeUnclickable("#no-option", {
   avoidCollisions: true,
   collisionPadding: 8,
   obstacles: null,
+  expandContainer: 0,
   preserveLayout: true,
   respectReducedMotion: true,
   redirectTarget: "#yes-button",
@@ -153,7 +154,8 @@ const controller = makeUnclickable("#no-option", {
 | `minimumTravel` | `36` | Preferred minimum relocation distance. Shorter safe moves are allowed in tight spaces. |
 | `avoidCollisions` | `true` | Avoid visible obstacles and collision paths. |
 | `collisionPadding` | `8` | Extra clearance around the escaping element. |
-| `obstacles` | Direct children | Selector, iterable of elements, or `(instance) => elements`. |
+| `obstacles` | Automatic | Selector, iterable, or callback. By default, sibling layout branches between the target and container are obstacles. |
+| `expandContainer` | `0` | Climb this many ancestors above the chosen/default container. `true` means one level. |
 | `preserveLayout` | `true` | Leave an invisible placeholder in the original flex/grid/layout slot. |
 | `respectReducedMotion` | `true` | Make animations instant when reduced motion is requested. |
 | `redirectTarget` | Automatic | Element, document selector, or `(instance) => element` for redirect. |
@@ -179,6 +181,20 @@ The target remains a normal flex/grid item when the page first loads. Unclickabl
 - Unclickable does not change the container's `display`, grid tracks, flex direction, or gap.
 
 The container becomes a positioning context (`position: relative`) only when it was previously `static`. Its original inline position is restored by `destroy()`.
+
+### Expand into a larger parent
+
+Keep the target in its normal compact flex row while allowing it to escape into a larger form:
+
+```js
+makeUnclickable("#no-option", {
+  container: "#answer-row",
+  expandContainer: 2,
+  mode: ["fade", "move"],
+});
+```
+
+The movement boundary becomes the ancestor two levels above `#answer-row`. The smaller row is not stretched or removed. Intermediate ancestors temporarily allow visible overflow so they do not clip the escape; `destroy()` restores their inline overflow values. Nested sibling sections inside the expanded boundary are automatically treated as obstacles, so the target uses open space instead of covering form fields.
 
 ## Runtime controls
 

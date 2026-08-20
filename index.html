@@ -109,12 +109,13 @@
 
     makeUnclickable("#newsletter-no-option", {
       container: document.querySelector("#newsletter-options"),
-      mode: ["fade"],
+      expandContainer: 3,
+      mode: ["move"],
       duration: 440,
-      dangerRadius: 85,
-      collisionPadding: 12,
+      collisionPadding: 2,
       minimumTravel: 30,
-      preserveLayout: true,
+      preserveLayout: false,
+      axis: "y",
       onAttempt: () => {
         attempts += 1;
         attemptCount.value = String(attempts);
