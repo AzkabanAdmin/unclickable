@@ -29,6 +29,7 @@ export class Unclickable {
       mode: "random",
       randomModes: ["dodge", "move", "vanish", "fade", "redirect"],
       trigger: "both",
+      axis: "both",
       padding: 10,
       duration: 360,
       dangerRadius: 90,
@@ -115,7 +116,7 @@ export class Unclickable {
         : null;
 
       if (visibility) await this.#hide(visibility, currentRun);
-      if (movement === "move") this.#setPosition(target);
+      if (movement === "move") this.#setPosition(target, this.options.axis);
       if (movement === "dodge") await this.#animatePosition(target, currentRun);
       if (visibility) {
         await this.#waitUntilPointerLeaves(currentRun);
@@ -157,6 +158,9 @@ export class Unclickable {
     this.#validateActionList(this.options.randomModes, "randomModes");
     if (!["both", "approach", "press"].includes(this.options.trigger)) {
       throw new RangeError('trigger must be "both", "approach", or "press".');
+    }
+    if (!["both", "x", "y"].includes(this.options.axis)) {
+      throw new RangeError('axis must be "both", "x", or "y".');
     }
   }
 
@@ -311,8 +315,12 @@ export class Unclickable {
 
     for (let attempt = 0; attempt < 100; attempt += 1) {
       const candidate = {
-        x: bounds.minX + Math.random() * (bounds.maxX - bounds.minX),
-        y: bounds.minY + Math.random() * (bounds.maxY - bounds.minY),
+        x: this.options.axis === "y"
+          ? start.x
+          : bounds.minX + Math.random() * (bounds.maxX - bounds.minX),
+        y: this.options.axis === "x"
+          ? start.y
+          : bounds.minY + Math.random() * (bounds.maxY - bounds.minY),
       };
       const overlap = this.#collisionArea(candidate);
       const distance = Math.hypot(candidate.x - start.x, candidate.y - start.y);
@@ -389,11 +397,11 @@ export class Unclickable {
     };
   }
 
-  #setPosition(position) {
+  #setPosition(position, axis = "both") {
     const bounds = this.#bounds();
     this.position = {
-      x: Math.min(bounds.maxX, Math.max(bounds.minX, position.x)),
-      y: Math.min(bounds.maxY, Math.max(bounds.minY, position.y)),
+      x: axis === "y" ? position.x : Math.min(bounds.maxX, Math.max(bounds.minX, position.x)),
+      y: axis === "x" ? position.y : Math.min(bounds.maxY, Math.max(bounds.minY, position.y)),
     };
     this.element.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, 0)`;
   }
@@ -401,7 +409,7 @@ export class Unclickable {
   #animatePosition(target, runId) {
     const duration = this.#duration();
     if (duration === 0) {
-      this.#setPosition(target);
+      this.#setPosition(target, this.options.axis);
       return Promise.resolve();
     }
     const start = { ...this.position };
@@ -412,7 +420,7 @@ export class Unclickable {
       this.#setPosition({
         x: start.x + (target.x - start.x) * eased,
         y: start.y + (target.y - start.y) * eased,
-      });
+      }, this.options.axis);
       return progress >= 1 || !this.#isCurrent(runId);
     });
   }

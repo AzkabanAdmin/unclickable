@@ -36,7 +36,7 @@ Use a module script in plain HTML:
 After a tagged release, it can also be imported through jsDelivr:
 
 ```js
-import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.0.0/unclickable.js";
+import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.1.0/unclickable.js";
 ```
 
 Pin a release version in production instead of using the latest branch.
@@ -117,6 +117,7 @@ const controller = makeUnclickable("#no-option", {
   mode: ["fade", "move"],
   randomModes: ["dodge", "move", "vanish", "fade", "redirect"],
   trigger: "both",
+  axis: "both",
   padding: 10,
   duration: 360,
   dangerRadius: 90,
@@ -139,6 +140,7 @@ const controller = makeUnclickable("#no-option", {
 | `mode` | `"random"` | One action, `"random"`, or a compatible action array. |
 | `randomModes` | All actions | Pool used by random mode. |
 | `trigger` | `"both"` | React on `"approach"`, `"press"`, or `"both"`. |
+| `axis` | `"both"` | Allow movement on `"both"` axes, only `"x"`, or only `"y"`. Applies to `move` and `dodge`. |
 | `padding` | `10` | Minimum distance in pixels from the container edge. |
 | `duration` | `360` | Dodge/fade duration in milliseconds. |
 | `dangerRadius` | `90` | Pointer proximity that triggers an approach escape. |
@@ -149,6 +151,18 @@ const controller = makeUnclickable("#no-option", {
 | `preserveLayout` | `true` | Leave an invisible placeholder in the original flex/grid/layout slot. |
 | `respectReducedMotion` | `true` | Make animations instant when reduced motion is requested. |
 | `redirectTarget` | Automatic | Element, document selector, or `(instance) => element` for redirect. |
+
+Constrain any movement action to one axis:
+
+```js
+mode: "dodge",
+axis: "x" // slide left or right only
+```
+
+```js
+mode: ["fade", "move"],
+axis: "y" // fade, jump vertically, fade back in
+```
 
 ## Flex and grid layouts
 
@@ -180,4 +194,3 @@ This library is designed for jokes, demos, games, easter eggs, and playful low-s
 ## License
 
 MIT
-
