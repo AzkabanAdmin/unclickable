@@ -3,7 +3,7 @@
  * Behavior is entirely JavaScript-controlled; host CSS owns the appearance.
  */
 
-const ACTIONS = Object.freeze(["dodge", "move", "vanish", "fade", "redirect"]);
+const ACTIONS = Object.freeze(["dodge", "teleport", "vanish", "fade", "redirect"]);
 const FOCUSABLE_SELECTOR = "button, input, select, textarea, a[href], [tabindex]";
 
 export class Unclickable {
@@ -39,7 +39,7 @@ export class Unclickable {
 
     this.options = {
       mode: "random",
-      randomModes: ["dodge", "move", "vanish", "fade", "redirect"],
+      randomModes: ["dodge", "teleport", "vanish", "fade", "redirect"],
       trigger: "both",
       axis: "both",
       padding: 10,
@@ -67,6 +67,8 @@ export class Unclickable {
       ...options,
     };
 
+    this.options.mode = this.#normalizeMode(this.options.mode);
+    this.options.randomModes = this.options.randomModes.map((action) => this.#normalizeAction(action));
     this.#validateOptions();
     if (Array.isArray(this.options.mode)) this.options.mode = [...new Set(this.options.mode)];
     this.options.randomModes = [...new Set(this.options.randomModes)];
@@ -99,6 +101,7 @@ export class Unclickable {
   }
 
   setMode(mode) {
+    mode = this.#normalizeMode(mode);
     this.#validateMode(mode);
     this.options.mode = Array.isArray(mode) ? [...new Set(mode)] : mode;
     return this;
@@ -119,8 +122,8 @@ export class Unclickable {
     try {
       if (actions.includes("redirect")) this.#redirect();
 
-      const movement = actions.includes("move")
-        ? "move"
+      const movement = actions.includes("teleport")
+        ? "teleport"
         : actions.includes("dodge") ? "dodge" : null;
       const visibility = actions.includes("fade")
         ? "fade"
@@ -130,7 +133,7 @@ export class Unclickable {
         : null;
 
       if (visibility) await this.#hide(visibility, currentRun);
-      if (movement === "move") this.#setPosition(target, this.options.axis);
+      if (movement === "teleport") this.#setPosition(target, this.options.axis);
       if (movement === "dodge") await this.#animatePosition(target, currentRun);
       if (visibility) {
         await this.#waitUntilPointerLeaves(currentRun);
@@ -189,15 +192,25 @@ export class Unclickable {
     }
     if (!mode.length) throw new RangeError("The mode list cannot be empty.");
     this.#validateActionList(mode, "mode");
-    const movementCount = Number(mode.includes("move")) + Number(mode.includes("dodge"));
+    const movementCount = Number(mode.includes("teleport")) + Number(mode.includes("dodge"));
     const visibilityCount = Number(mode.includes("vanish")) + Number(mode.includes("fade"));
-    if (movementCount > 1) throw new RangeError('Combine either "move" or "dodge", not both.');
+    if (movementCount > 1) throw new RangeError('Combine either "teleport" or "dodge", not both.');
     if (visibilityCount > 1) throw new RangeError('Combine either "vanish" or "fade", not both.');
   }
 
   #validateActionList(actions, name) {
     const invalid = actions.find((action) => !ACTIONS.includes(action));
     if (invalid !== undefined) throw new RangeError(`Unknown ${name} action: ${invalid}`);
+  }
+
+  #normalizeMode(mode) {
+    return Array.isArray(mode)
+      ? mode.map((action) => this.#normalizeAction(action))
+      : this.#normalizeAction(mode);
+  }
+
+  #normalizeAction(action) {
+    return action === "move" ? "teleport" : action;
   }
 
   #prepare() {

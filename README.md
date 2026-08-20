@@ -20,6 +20,8 @@ npx serve .
 
 Then open the local URL printed in your terminal.
 
+The playground lets you test every action and combination, axis and trigger constraints, container expansion, layout preservation, collision settings, timing, distances, redirect targets, reduced-motion behavior, callbacks, and the random-action pool against a working form.
+
 ## Add it to a project
 
 Copy `unclickable.js` into your project and import it:
@@ -29,7 +31,7 @@ import { makeUnclickable } from "./unclickable.js";
 
 makeUnclickable("#no-button", {
   container: document.querySelector("#choice-area"),
-  mode: ["fade", "move"],
+  mode: ["fade", "teleport"],
 });
 ```
 
@@ -42,7 +44,7 @@ Use a module script in plain HTML:
 After a tagged release, it can also be imported through jsDelivr:
 
 ```js
-import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.2.0/unclickable.js";
+import { makeUnclickable } from "https://cdn.jsdelivr.net/gh/AzkabanAdmin/unclickable@v1.3.0/unclickable.js";
 ```
 
 Pin a release version in production instead of using the latest branch.
@@ -72,7 +74,7 @@ The container needs some free space if the element should change position. Uncli
 | Action | Behavior |
 | --- | --- |
 | `dodge` | Smoothly moves to a collision-free destination. |
-| `move` | Instantly jumps to a collision-free destination. |
+| `teleport` | Instantly jumps to a collision-free destination. (`move` remains a compatibility alias.) |
 | `vanish` | Instantly disappears, waits for the pointer to leave its bounds, then instantly returns. |
 | `fade` | Fades out, waits for the pointer to leave its bounds, then fades in. |
 | `redirect` | Calls `.click()` on another enabled control. Redirect happens only on a press attempt. |
@@ -85,13 +87,13 @@ The container needs some free space if the element should change position. Uncli
 Pass an array to run compatible actions during the same escape:
 
 ```js
-mode: ["fade", "move"]       // fade out, teleport, fade in
-mode: ["vanish", "move"]    // disappear, teleport, reappear
+mode: ["fade", "teleport"]       // fade out, teleport, fade in
+mode: ["vanish", "teleport"]    // disappear, teleport, reappear
 mode: ["fade", "dodge"]     // fade out, move smoothly, fade in
 mode: ["redirect", "dodge"] // activate another control and escape
 ```
 
-Choose only one movement action (`move` or `dodge`) and one visibility action (`vanish` or `fade`) per combination.
+Choose only one movement action (`teleport` or `dodge`) and one visibility action (`vanish` or `fade`) per combination.
 
 ## Inputs and composite controls
 
@@ -109,7 +111,7 @@ The target can be a button, input, radio/checkbox label, link, or any other visi
 ```js
 makeUnclickable("#no-option", {
   container: document.querySelector("#answer-row"),
-  mode: ["fade", "move"],
+  mode: ["fade", "teleport"],
 });
 ```
 
@@ -120,8 +122,8 @@ Descendant form controls are removed from keyboard navigation while the controll
 ```js
 const controller = makeUnclickable("#no-option", {
   container: document.querySelector("#answer-row"),
-  mode: ["fade", "move"],
-  randomModes: ["dodge", "move", "vanish", "fade", "redirect"],
+  mode: ["fade", "teleport"],
+  randomModes: ["dodge", "teleport", "vanish", "fade", "redirect"],
   trigger: "both",
   axis: "both",
   padding: 10,
@@ -147,7 +149,7 @@ const controller = makeUnclickable("#no-option", {
 | `mode` | `"random"` | One action, `"random"`, or a compatible action array. |
 | `randomModes` | All actions | Pool used by random mode. |
 | `trigger` | `"both"` | React on `"approach"`, `"press"`, or `"both"`. |
-| `axis` | `"both"` | Allow movement on `"both"` axes, only `"x"`, or only `"y"`. Applies to `move` and `dodge`. |
+| `axis` | `"both"` | Allow movement on `"both"` axes, only `"x"`, or only `"y"`. Applies to `teleport` and `dodge`. |
 | `padding` | `10` | Minimum distance in pixels from the container edge. |
 | `duration` | `360` | Dodge/fade duration in milliseconds. |
 | `dangerRadius` | `90` | Pointer proximity that triggers an approach escape. |
@@ -168,7 +170,7 @@ axis: "x" // slide left or right only
 ```
 
 ```js
-mode: ["fade", "move"],
+mode: ["fade", "teleport"],
 axis: "y" // fade, jump vertically, fade back in
 ```
 
@@ -190,7 +192,7 @@ Keep the target in its normal compact flex row while allowing it to escape into 
 makeUnclickable("#no-option", {
   container: "#answer-row",
   expandContainer: 2,
-  mode: ["fade", "move"],
+  mode: ["fade", "teleport"],
 });
 ```
 
@@ -202,7 +204,7 @@ The movement boundary becomes the ancestor two levels above `#answer-row`. The s
 const controller = makeUnclickable("#no-button");
 
 controller.setMode("vanish");
-controller.setMode(["fade", "move"]);
+controller.setMode(["fade", "teleport"]);
 controller.evade();
 controller.destroy();
 ```
